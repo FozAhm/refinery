@@ -24,6 +24,7 @@ include(
 		"store-query-interpreter",
 		"store-reasoning",
 		"store-reasoning-scope",
+		"dse-demo",
 )
 
 for (project in rootProject.children) {
