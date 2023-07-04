@@ -1,8 +1,8 @@
 import tools.refinery.store.query.dnf.*;
 import tools.refinery.store.query.term.Variable;
 import tools.refinery.store.query.term.real.RealTerms;
-import tools.refinery.store.query.viatra.ViatraModelQuery;
-import tools.refinery.store.query.view.KeyOnlyRelationView;
+import tools.refinery.store.query.viatra.ViatraModelQueryAdapter;
+import tools.refinery.store.query.view.KeyOnlyView;
 import tools.refinery.store.representation.Symbol;
 import tools.refinery.store.model.ModelStore;
 import tools.refinery.store.query.dnf.RelationalQuery;
@@ -32,19 +32,23 @@ public class CRAStore {
 	private final RelationalQuery nonEncapsulatedFeatures;
 	private final RelationalQuery methodsForClass;
 	private final RelationalQuery attributesForClass;
+	private final RelationalQuery deleteClassPrecondition;
+	private final RelationalQuery createClassPrecondition;
+	private final RelationalQuery moveFeaturePrecondition;
+	private final RelationalQuery assignFeaturePrecondition;
 	private final FunctionalQuery<Double> NormalizedMAI;
 	private final FunctionalQuery<Double> NormalizedMMI;
 	private final FunctionalQuery<Double> CRA;
 	private final ModelStore store;
 
 	public CRAStore() {
-		var attributeView = new KeyOnlyRelationView<>(attribute);
-		var methodView = new KeyOnlyRelationView<>(method);
-		var classView = new KeyOnlyRelationView<>(class_);
+		var attributeView = new KeyOnlyView<>(attribute);
+		var methodView = new KeyOnlyView<>(method);
+		var classView = new KeyOnlyView<>(class_);
 
-		var functionalDependencyView = new KeyOnlyRelationView<>(functionalDependency);
-		var dataDependencyView = new KeyOnlyRelationView<>(dataDependency);
-		var isEncapsulatedByView = new KeyOnlyRelationView<>(isEncapsulatedBy);
+		var functionalDependencyView = new KeyOnlyView<>(functionalDependency);
+		var dataDependencyView = new KeyOnlyView<>(dataDependency);
+		var isEncapsulatedByView = new KeyOnlyView<>(isEncapsulatedBy);
 
 		// Create a query that will return all classes
 		var class1 = Variable.of("class1");
@@ -208,11 +212,38 @@ public class CRAStore {
 						CRA_Index.assign(RealTerms.sub(add(Cohesion_MAI, Cohesion_MMI), add(Coupling_MAI, Coupling_MMI))))
 				.build();
 
+		// Created a Query that is the precondition for deleting a class
+		// Will return a table that contians two colums, one colum with classID, another with boolean existence
+		// Each row should contain a class does encapsulates no features
+		deleteClassPrecondition = Query.of("deleteClassPrecondition", (builder, classID) -> builder.clause(
+				classView.call(classID),
+				not(isEncapsulatedByView.call(Variable.of(), classID))
+		));
+
+		createClassPrecondition = Query.of("createClassPrecondition", (builder, featureID) -> builder.clause(
+				features.call(featureID),
+				not(isEncapsulatedByView.call(featureID, Variable.of()))
+		));
+
+		moveFeaturePrecondition = Query.of("moveFeaturePrecondition", (builder, featureID, sourceClassID,
+				targetClassID) -> builder.clause(
+						features.call(featureID),
+				isEncapsulatedByView.call(featureID, sourceClassID),
+				classView.call(targetClassID),
+				sourceClassID.notEquivalent(targetClassID)
+		));
+
+		assignFeaturePrecondition = Query.of("assignFeaturePrecondition", (builder, featureID, targetClassID) ->
+				builder.clause(
+						nonEncapsulatedFeatures.call(featureID),
+						classView.call(targetClassID)
+				));
+
 		store = ModelStore.builder()
 				.symbols(name, attribute, method, class_, nextID, functionalDependency, dataDependency,
 						isEncapsulatedBy)
-				.with(ViatraModelQuery.ADAPTER)
-				.queries(nonEncapsulatedFeatures, CRA)
+				.with(ViatraModelQueryAdapter.builder().queries(createClassPrecondition, deleteClassPrecondition,
+						moveFeaturePrecondition, assignFeaturePrecondition, nonEncapsulatedFeatures, CRA))
 				.build();
 	}
 
@@ -247,23 +278,24 @@ public class CRAStore {
 		return isEncapsulatedBy;
 	}
 
-	public RelationalQuery getClasses() {
-		return classes;
-	}
-	public RelationalQuery getFeatures() {
-		return features;
+
+	public RelationalQuery getDeleteClassPrecondition() {
+		return deleteClassPrecondition;
 	}
 
+	public RelationalQuery getCreateClassPrecondition() {
+		return createClassPrecondition;
+	}
+
+	public RelationalQuery getMoveFeaturePrecondition() {
+		return moveFeaturePrecondition;
+	}
+
+	public RelationalQuery getAssignFeaturePrecondition() {
+		return assignFeaturePrecondition;
+	}
 	public RelationalQuery getNonEncapsulatedFeatures() {
 		return nonEncapsulatedFeatures;
-	}
-
-	public RelationalQuery getMethodsForClass() {
-		return methodsForClass;
-	}
-
-	public RelationalQuery getAttributesForClass() {
-		return  attributesForClass;
 	}
 
 	public FunctionalQuery<Double> getCRA() {
@@ -273,6 +305,4 @@ public class CRAStore {
 	public CRAModel createEmptyModel() {
 		return new CRAModel(this, store.createEmptyModel());
 	}
-
-
 }

@@ -1,7 +1,13 @@
+import tools.refinery.store.query.ResultSet;
 import tools.refinery.store.tuple.Tuple;
+
+import java.util.ArrayList;
+import java.util.Random;
+import java.util.function.Consumer;
 
 public class CRA {
 	public static void main(String[] args) {
+		var random = new Random(1);
 		var craStore = new CRAStore();
 		var model = craStore.createEmptyModel();
 
@@ -15,6 +21,11 @@ public class CRA {
 		var functionalDependencyInterpretation = model.getFunctionalDependencyInterpretation();
 		var dataDependencyInterpretation = model.getDataDependencyInterpretation();
 		var isEncapsulatedByInterpretation = model.getIsEncapsulatedByInterpretation();
+
+		var createClassPreconditionResultSet = model.getCreateClassPreconditionResultSet();
+		var deleteClassPreconditionResultSet = model.getDeleteClassPreconditionResultSet();
+		var moveFeaturePreconditionResultSet = model.getMoveFeaturePreconditionResultSet();
+		var assignFeaturePreconditionResultSet = model.getAssignFeaturePreconditionResultSet();
 
 		var nonEncapsulatedFeaturesResultSet = model.getNonEncapsulatedFeaturesResultSet();
 		var CRAResult = model.getCRAResult();
@@ -59,9 +70,63 @@ public class CRA {
 
 		model.updateResultSets();
 
-		long initalStateID = model.commit();
+		long initalStateCommitID = model.commit();
 
 		System.out.println("CRA Index for Initial Model");
 		System.out.println(CRAResult.get(Tuple.of()));
+		System.out.println("Initial Model Non Encapsulated Features");
+		System.out.println(nonEncapsulatedFeaturesResultSet.size());
+
+		// For Hill Search
+//		ArrayList<RuleActivation> moves = new ArrayList<RuleActivation>();
+//		ArrayList<RuleActivation> exploredMoves = new ArrayList<RuleActivation>();
+//		Integer highScore = 0;
+//
+//		var cursor = createClassPreconditionResultSet.getAll();
+//		while (cursor.move()){
+//			moves.add(new RuleActivation(cursor.getKey(), model::createClass));
+//		}
+//
+//		System.out.println("Number of unexplored moves: " + moves.size());
+//
+//		for (RuleActivation i : moves){
+//			i.rule().accept(i.activation());
+//			model.updateResultSets();
+//			System.out.println("CRA Score: " + i.activation() + " -> " + CRAResult.get(Tuple.of()));
+//			model.restoreModel(initalStateCommitID);
+//		}
+
+		double highestCRA = Double.NEGATIVE_INFINITY;
+		for (int i = 0; i < 10000; i++){
+			ArrayList<RuleActivation> moves = new ArrayList<RuleActivation>();
+
+			addMoves(createClassPreconditionResultSet, model::createClass, "createClass", moves);
+			addMoves(deleteClassPreconditionResultSet, model::deleteEmptyClass, "deleteEmptyClass", moves);
+			addMoves(moveFeaturePreconditionResultSet, model::moveFeature, "moveFeature", moves);
+			addMoves(assignFeaturePreconditionResultSet, model::assignFeature, "assignFeature", moves);
+
+			//System.out.println("Number of all possible moves: " + moves.size());
+
+			int moveID = random.nextInt(moves.size());
+			RuleActivation move = moves.get(moveID);
+			move.rule().accept(move.activation());
+			model.updateResultSets();
+			double currentScore = CRAResult.get(Tuple.of());
+			System.out.println("CRA Score: " + move.activation() + " for " + move.ruleName() + " -> " + currentScore);
+			if ((currentScore > highestCRA) && (nonEncapsulatedFeaturesResultSet.size() == 0)){
+				highestCRA = currentScore;
+			}
+
+		}
+		System.out.println("Highest CRA Recorded: " + highestCRA);
+
+	}
+
+	private static void addMoves(ResultSet<Boolean> resultSet, Consumer<Tuple> rule, String ruleName,
+								 ArrayList<RuleActivation> moves) {
+		var cursor =resultSet.getAll();
+		while (cursor.move()){
+			moves.add(new RuleActivation(cursor.getKey(), rule, ruleName));
+		}
 	}
 }
