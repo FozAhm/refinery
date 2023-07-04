@@ -1,5 +1,4 @@
 import tools.refinery.store.model.Model;
-import tools.refinery.store.query.ModelQuery;
 import tools.refinery.store.query.ModelQueryAdapter;
 import tools.refinery.store.model.Interpretation;
 import tools.refinery.store.query.ResultSet;
@@ -8,7 +7,6 @@ import tools.refinery.store.tuple.Tuple;
 import java.util.Random;
 
 public class CRAModel {
-	private final Random random;
 	private final Model model;
 	private final ModelQueryAdapter queryEngine;
 	private final Interpretation<String> nameInterpretation;
@@ -21,17 +19,16 @@ public class CRAModel {
 	private final Interpretation<Boolean> dataDependencyInterpretation;
 	private final Interpretation<Boolean> isEncapsulatedByInterpretation;
 
-	private final ResultSet<Boolean> classesResultSet;
-	private final ResultSet<Boolean> featuresResultSet;
-	private final ResultSet<Boolean> methodsForClassResultSet;
-	private final ResultSet<Boolean> attributesForClassResultSet;
+	private final ResultSet<Boolean> createClassPreconditionResultSet;
+	private final ResultSet<Boolean> deleteClassPreconditionResultSet;
+	private final ResultSet<Boolean> moveFeaturePreconditionResultSet;
+	private final ResultSet<Boolean> assignFeaturePreconditionResultSet;
 	private final ResultSet<Boolean> nonEncapsulatedFeaturesResultSet;
 	private final ResultSet<Double> CRAResult;
 
 	public CRAModel(CRAStore craStore, Model model){
-		random = new Random(1);
 		this.model = model;
-		this.queryEngine = model.getAdapter(ModelQuery.ADAPTER);
+		this.queryEngine = model.getAdapter(ModelQueryAdapter.class);
 
 		this.nameInterpretation = model.getInterpretation(craStore.getName());
 		this.attributeInterpretation = model.getInterpretation(craStore.getAttribute());
@@ -43,10 +40,11 @@ public class CRAModel {
 		this.dataDependencyInterpretation = model.getInterpretation(craStore.getDataDependency());
 		this.isEncapsulatedByInterpretation = model.getInterpretation(craStore.getIsEncapsulatedBy());
 
-		this.classesResultSet = this.queryEngine.getResultSet(craStore.getClasses());
-		this.featuresResultSet = this.queryEngine.getResultSet(craStore.getFeatures());
-		this.methodsForClassResultSet = this.queryEngine.getResultSet(craStore.getMethodsForClass());
-		this.attributesForClassResultSet = this.queryEngine.getResultSet(craStore.getAttributesForClass());
+		this.createClassPreconditionResultSet = this.queryEngine.getResultSet(craStore.getCreateClassPrecondition());
+		this.deleteClassPreconditionResultSet = this.queryEngine.getResultSet(craStore.getDeleteClassPrecondition());
+		this.moveFeaturePreconditionResultSet = this.queryEngine.getResultSet(craStore.getMoveFeaturePrecondition());
+		this.assignFeaturePreconditionResultSet =
+				this.queryEngine.getResultSet(craStore.getAssignFeaturePrecondition());
 
 		this.nonEncapsulatedFeaturesResultSet = this.queryEngine.getResultSet(craStore.getNonEncapsulatedFeatures());
 		this.CRAResult = this.queryEngine.getResultSet(craStore.getCRA());
@@ -78,11 +76,17 @@ public class CRAModel {
 		return isEncapsulatedByInterpretation;
 	}
 
-	public ResultSet<Boolean> getMethodsForClassResultSet() {
-		return methodsForClassResultSet;
+	public ResultSet<Boolean> getCreateClassPreconditionResultSet() {
+		return createClassPreconditionResultSet;
 	}
-	public ResultSet<Boolean> getAttributesForClassResultSet() {
-		return attributesForClassResultSet;
+	public ResultSet<Boolean> getDeleteClassPreconditionResultSet() {
+		return deleteClassPreconditionResultSet;
+	}
+	public ResultSet<Boolean> getMoveFeaturePreconditionResultSet() {
+		return moveFeaturePreconditionResultSet;
+	}
+	public ResultSet<Boolean> getAssignFeaturePreconditionResultSet() {
+		return assignFeaturePreconditionResultSet;
 	}
 	public ResultSet<Boolean> getNonEncapsulatedFeaturesResultSet() {
 		return nonEncapsulatedFeaturesResultSet;
@@ -96,6 +100,9 @@ public class CRAModel {
 	}
 	public void updateResultSets(){
 		this.queryEngine.flushChanges();
+	}
+	public void restoreModel(long commitID) {
+		this.model.restore(commitID);
 	}
 
 	public void assignFeature(Tuple activation) {
