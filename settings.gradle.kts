@@ -25,6 +25,7 @@ include(
 		"store-reasoning",
 		"store-reasoning-scope",
 		"dse-demo",
+		"cube-sat",
 )
 
 for (project in rootProject.children) {
