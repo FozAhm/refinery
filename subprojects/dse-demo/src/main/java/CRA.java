@@ -97,28 +97,48 @@ public class CRA {
 //		}
 
 		double highestCRA = Double.NEGATIVE_INFINITY;
+		long highestCRACommitID = initalStateCommitID;
 		for (int i = 0; i < 10000; i++){
 			ArrayList<RuleActivation> moves = new ArrayList<RuleActivation>();
 
 			addMoves(createClassPreconditionResultSet, model::createClass, "createClass", moves);
-			addMoves(deleteClassPreconditionResultSet, model::deleteEmptyClass, "deleteEmptyClass", moves);
+			//addMoves(deleteClassPreconditionResultSet, model::deleteEmptyClass, "deleteEmptyClass", moves);
 			addMoves(moveFeaturePreconditionResultSet, model::moveFeature, "moveFeature", moves);
 			addMoves(assignFeaturePreconditionResultSet, model::assignFeature, "assignFeature", moves);
 
 			//System.out.println("Number of all possible moves: " + moves.size());
 
+			if (moves.size() == 0 ){
+				break;
+			}
+
 			int moveID = random.nextInt(moves.size());
 			RuleActivation move = moves.get(moveID);
 			move.rule().accept(move.activation());
 			model.updateResultSets();
+
+			// Delete all empty classes
+			var cursor = deleteClassPreconditionResultSet.getAll();
+			while (cursor.move()) {
+				System.out.println("Empty Class being deleted" + cursor.getKey());
+				model.deleteEmptyClass(cursor.getKey());
+			}
+			model.updateResultSets();
+
 			double currentScore = CRAResult.get(Tuple.of());
 			System.out.println("CRA Score: " + move.activation() + " for " + move.ruleName() + " -> " + currentScore);
 			if ((currentScore > highestCRA) && (nonEncapsulatedFeaturesResultSet.size() == 0)){
 				highestCRA = currentScore;
+				highestCRACommitID = model.commit();
 			}
 
 		}
 		System.out.println("Highest CRA Recorded: " + highestCRA);
+		model.restoreModel(highestCRACommitID);
+		var cursor = isEncapsulatedByInterpretation.getAll();
+		while (cursor.move()){
+			System.out.println(cursor.getKey());
+		}
 
 	}
 

@@ -18,6 +18,7 @@ include(
 		"store-query-viatra",
 		"store-reasoning",
 		"dse-demo",
+		"cube-sat",
 )
 
 for (project in rootProject.children) {
