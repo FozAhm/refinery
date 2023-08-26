@@ -19,6 +19,7 @@ include(
 		"store-reasoning",
 		"dse-demo",
 		"cube-sat",
+		"dse-sprint",
 )
 
 for (project in rootProject.children) {
