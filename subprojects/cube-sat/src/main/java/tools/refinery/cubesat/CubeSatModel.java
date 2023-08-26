@@ -107,7 +107,7 @@ public class CubeSatModel {
 	private int newID(){
 		int newClassID = this.nextIDInterpretation.get(Tuple.of());
 		this.nextIDInterpretation.put(Tuple.of(), newClassID+1);
-		return  newClassID;
+		return newClassID;
 	}
 
 	// Transformation Functions
