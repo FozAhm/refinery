@@ -37,68 +37,82 @@ import static tools.refinery.store.query.term.real.RealTerms.constant;
 
 public class CubeSatStore {
 	// Spacecraft & Equipment
+
 	private final Symbol<Boolean> spacecraft = new Symbol<>("spacecraft", 1, Boolean.class, false);
 	private final Symbol<Boolean> hasPayload = new Symbol<>("hasPayload", 1, Boolean.class, false);
 	private final Symbol<Boolean> groundStation = new Symbol<>("groundStation", 1, Boolean.class, false);
 
+
 	// Spacecraft Type
+
 	private final Symbol<Boolean> cube3U = new Symbol<>("cube3U", 1, Boolean.class, false);
 	private final Symbol<Boolean> cube6U = new Symbol<>("cube6U", 1, Boolean.class, false);
 	private final Symbol<Boolean> smallSat = new Symbol<>("smallSat", 1, Boolean.class, false);
 
+
 	// Communication System
+
 	private final Symbol<Boolean> kaComm = new Symbol<>("kaComm", 1, Boolean.class, false);
 	private final Symbol<Boolean> xComm = new Symbol<>("xComm", 1, Boolean.class, false);
 	private final Symbol<Boolean> uhfComm = new Symbol<>("uhfComm", 1, Boolean.class, false);
 
 
 	// Relationships
+
 	// Relationship between a satellite and its comm sub system
 	private final Symbol<Boolean> commSubSystem = new Symbol<>("commSubSystem", 2, Boolean.class, false);
 	// Relationship between two comm sub systems
 	private final Symbol<Boolean> commLink = new Symbol<>("commLink", 2, Boolean.class, false);
 
+
 	// Symbols
+
 	private final Symbol<Double> tObservation = new Symbol<>("tObservation", 0, Double.class, null);
 	private final Symbol<Integer> nextID = new Symbol<>("nextID", 0, Integer.class, 0);
 
-	// Queries
-	private final RelationalQuery misconfiguredSpacecraftHelper;
-	private final RelationalQuery misconfiguredSpacecraft;
+
+	// Information Queries
+	private final RelationalQuery communicatingElement;
+	private final RelationalQuery allComms;
+	private final RelationalQuery satLinkHelper;
+	private final RelationalQuery satLink;
+
+
+	// Objective Queries
 
 	private final FunctionalQuery<Double> coverage;
 	private final FunctionalQuery<Double> dataCollected;
-
-	private final RelationalQuery communicatingElement;
-	private final RelationalQuery misconfiguredCommCount;
-	private final RelationalQuery misconfiguredSatComm;
-	private final RelationalQuery satLinkHelper;
-	private final RelationalQuery misconfiguredCommLink;
-
-	private final RelationalQuery misconfiguredComm;
-	private final RelationalQuery unusedComm;
-	private final RelationalQuery allComms;
-	private final RelationalQuery deadComm;
-	private final RelationalQuery misconfiguredPayloadCount;
-	private final RelationalQuery misconfiguredSatCommLink;
-	private final RelationalQuery groundPathHelper;
-	private final RelationalQuery misconfiguredGroundPath;
-	private final RelationalQuery satLink;
-	private final RelationalQuery commLoop;
-
+	private final FunctionalQuery<Double> linkSpeed;
 	private final RelationalQuery tTransmitHelper1;
 	private final FunctionalQuery<Integer> tTransmitHelper2;
-	private final FunctionalQuery<Double> linkSpeed;
 	private final FunctionalQuery<Double> tTransmit;
 	private final FunctionalQuery<Double> tMission;
-
 	private final FunctionalQuery<Double> satCostHelper1;
 	private final FunctionalQuery<Double> satCostHelper2;
 	private final FunctionalQuery<Double> satCostHelper3;
 	private final FunctionalQuery<Double> satCost;
 	private final FunctionalQuery<Double> missionCost;
 
+
+	// Misconfigured Queries
+
+	private final RelationalQuery misconfiguredCommCount;
+	private final RelationalQuery misconfiguredSatComm;
+	private final RelationalQuery misconfiguredCommLink;
+	private final RelationalQuery misconfiguredSpacecraftHelper;
+	private final RelationalQuery misconfiguredSpacecraft;
+	private final RelationalQuery misconfiguredComm;
+	private final RelationalQuery misconfiguredPayloadCount;
+	private final RelationalQuery misconfiguredSatCommLink;
+	private final RelationalQuery groundPathHelper;
+	private final RelationalQuery misconfiguredGroundPath;
+	private final RelationalQuery unusedComm;
+	private final RelationalQuery deadComm;
+	private final RelationalQuery commLoop;
+
+
 	// Precondition Queries
+
 	private final RelationalQuery hasSpaceForComm;
 	private final RelationalQuery hasXComm;
 	private final RelationalQuery addXCommToSpacecraftPrecondition;
@@ -121,7 +135,6 @@ public class CubeSatStore {
 	private final RelationalQuery removeCube6USpacecraftPrecondition;
 
 
-
 	private final ModelStore store;
 
 	public CubeSatStore() {
@@ -142,22 +155,50 @@ public class CubeSatStore {
 
 		var tObservationView = new KeyOnlyView<>(tObservation);
 
-		// Finds all cases of a Satellite belonging to more than one type
-		var sat0 = Variable.of("Sat0");
-		misconfiguredSpacecraftHelper = Query.builder("misconfiguredSpacecraftHelper")
-				.parameters(sat0)
-				.clause(cube3UView.call(sat0), cube6UView.call(sat0))
-				.clause(cube6UView.call(sat0), smallSatView.call(sat0))
-				.clause(smallSatView.call(sat0), cube3UView.call(sat0))
+		// Queries
+
+
+		// Information Queries
+
+		// Returns all the satellites & ground stations
+		var commElement1 = Variable.of("commElement1");
+		communicatingElement = Query.builder("communicatingElement")
+				.parameters(commElement1)
+				.clause(spacecraftView.call(commElement1))
+				.clause(groundStationView.call(commElement1))
 				.build();
 
-		// Ensure that a spacecraft only appears as one satellite
-		var sat1 = Variable.of("sat1");
-		misconfiguredSpacecraft = Query.builder("misconfiguredSpacecraft")
-				.parameters(sat1)
-				.clause(spacecraftView.call(sat1), misconfiguredSpacecraftHelper.call(sat1))
-				.clause(spacecraftView.call(sat1), not(cube3UView.call(sat0)), not(cube6UView.call(sat0)), not(smallSatView.call(sat0)))
+		var commSubSys10 = Variable.of("commSubSys10");
+		allComms = Query.builder("allComms")
+				.parameters(commSubSys10)
+				.clause(kaCommView.call(commSubSys10))
+				.clause(xCommView.call(commSubSys10))
+				.clause(uhfCommView.call(commSubSys10))
 				.build();
+
+		var sat21 = Variable.of("sat21");
+		var sat22 = Variable.of("sat22");
+		var commSubSys12 = Variable.of("commSubSys12");
+		var commSubSys13 = Variable.of("commSubSys13");
+		satLinkHelper = Query.builder("satLinkHelper")
+				.parameters(sat21, sat22, commSubSys12, commSubSys13)
+				.clause(commSubSystemView.call(sat21, commSubSys12), commSubSystemView.call(sat22, commSubSys13),
+						commLinkView.call(commSubSys12, commSubSys13))
+				.build();
+
+		// Returns all the links between two Satellites (or GS)
+		var sat3 = Variable.of("sat3");
+		var sat4 = Variable.of("sat4");
+		var commSubSys3 = Variable.of("commSubSys3");
+		var commSubSys4 = Variable.of("commSubSys4");
+		satLink = Query.builder("satLink")
+				.parameters(sat3, sat4)
+				.clause(commSubSystemView.call(sat3, commSubSys3), commSubSystemView.call(sat4, commSubSys4),
+						commLinkView.call(commSubSys3, commSubSys4))
+				.build();
+
+
+		// Objective Queries
 
 		// We cannot assign a value to temp_tObservation as tObservationView is an arity zero table (one row)
 		// therefore we must assign all values from tObservationView table to the temp_tObservation variable
@@ -184,149 +225,6 @@ public class CubeSatStore {
 						dScience.assign(mul(constant(5400.0), temp_tObservation_1)))
 				.build();
 
-		// Returns all the satellites & ground stations
-		var commElement1 = Variable.of("commElement1");
-		communicatingElement = Query.builder("communicatingElement")
-				.parameters(commElement1)
-				.clause(spacecraftView.call(commElement1))
-				.clause(groundStationView.call(commElement1))
-				.build();
-
-		// Returns all Satellites/GS with more than two communication sub systems
-		var sat2 = Variable.of("sat2");
-		var commCount = Variable.of("commCount", Integer.class);
-		misconfiguredCommCount = Query.builder("misconfiguredCommCount")
-				.parameters(sat2)
-				.clause(communicatingElement.call(sat2),
-						commCount.assign(commSubSystemView.count(sat2, Variable.of())),
-						assume(greater(commCount, constant(2))))
-				.build();
-
-		// Need Query for misconfigured comm sub system in relation to a satellite
-		var sat18 = Variable.of("sat18");
-		var commSubSys0 = Variable.of("commSubSys0");
-		misconfiguredSatComm = Query.builder("misconfiguredSatComm")
-				.parameters(sat18, commSubSys0)
-				.clause(groundStationView.call(sat18), uhfCommView.call(commSubSys0),
-						commSubSystemView.call(sat18, commSubSys0))
-				.clause(spacecraftView.call(sat18), kaCommView.call(commSubSys0),
-						commSubSystemView.call(sat18, commSubSys0), not(smallSatView.call(sat18)))
-				.build();
-
-		// Helper for misconfigured communication links
-		var commSubSys1 = Variable.of("commSubSys1");
-		var commSubSys2 = Variable.of("commSubSys2");
-		misconfiguredCommLink = Query.builder("misconfiguredCommLink")
-				.parameters(commSubSys1, commSubSys2)
-				.clause(commLinkView.call(commSubSys1, commSubSys2), kaCommView.call(commSubSys1),
-						not(kaCommView.call(commSubSys2)))
-				.clause(commLinkView.call(commSubSys1, commSubSys2), uhfCommView.call(commSubSys1),
-						not(uhfCommView.call(commSubSys2)))
-				.clause(commLinkView.call(commSubSys1, commSubSys2), xCommView.call(commSubSys1),
-						not(xCommView.call(commSubSys2)))
-				.build();
-
-		var commSubSys10 = Variable.of("commSubSys10");
-		allComms = Query.builder("allComms")
-				.parameters(commSubSys10)
-				.clause(kaCommView.call(commSubSys10))
-				.clause(xCommView.call(commSubSys10))
-				.clause(uhfCommView.call(commSubSys10))
-				.build();
-
-		// Returns comms that appear in more than one type of system
-		var commSubSys14 = Variable.of("commSubSys14");
-		misconfiguredComm = Query.builder("misconfiguredComm")
-				.parameters(commSubSys14)
-				.clause(uhfCommView.call(commSubSys14), xCommView.call(commSubSys14))
-				.clause(xCommView.call(commSubSys14), kaCommView.call(commSubSys14))
-				.clause(kaCommView.call(commSubSys14), uhfCommView.call(commSubSys14))
-				.build();
-
-		// Must only appear once in payload
-		var tempPayloadCount = Variable.of("tempPayloadCount", Integer.class);
-		misconfiguredPayloadCount = Query.builder("misconfiguredPayloadCount")
-				.parameters()
-				.clause(tempPayloadCount.assign(hasPayloadView.count(Variable.of())),
-						assume(less(tempPayloadCount, constant(2))))
-				.build();
-
-		// Returns all the comms not attached to a satelite
-		var commSubSys9 = Variable.of("commSubSys9");
-		unusedComm = Query.builder("unusedComm")
-				.parameters(commSubSys9)
-				.clause(allComms.call(commSubSys9), not(commSubSystemView.call(Variable.of(), commSubSys9)))
-				.build();
-
-		// Returns a commsub system that is not being used
-		var commSubSys11 = Variable.of("commSubSys11");
-		deadComm = Query.builder("deadComm")
-				.parameters(commSubSys11)
-				.clause(allComms.call(commSubSys11),
-						not(commLinkView.call(commSubSys11, Variable.of())),
-						not(commLinkView.call(Variable.of(), commSubSys11)))
-				.build();
-
-		var sat21 = Variable.of("sat21");
-		var sat22 = Variable.of("sat22");
-		var commSubSys12 = Variable.of("commSubSys12");
-		var commSubSys13 = Variable.of("commSubSys13");
-		satLinkHelper = Query.builder("satLinkHelper")
-				.parameters(sat21, sat22, commSubSys12, commSubSys13)
-				.clause(commSubSystemView.call(sat21, commSubSys12), commSubSystemView.call(sat22, commSubSys13),
-						commLinkView.call(commSubSys12, commSubSys13))
-				.build();
-
-		// Returns all satellites with more than one outgoing connection or a GS with any outgoing link
-		var sat19 = Variable.of("sat19");
-		var tempOutgoingCount = Variable.of("tempOutgoingCount", Integer.class);
-		misconfiguredSatCommLink = Query.builder("misconfiguredSatCommLink")
-				.parameters(sat19)
-				.clause(spacecraftView.call(sat19),
-						tempOutgoingCount.assign(satLinkHelper.count(sat19, Variable.of(), Variable.of(),
-								Variable.of())),
-						assume(notEq(tempOutgoingCount, constant(1))))
-				.clause(groundStationView.call(sat19),
-						satLinkHelper.call(sat19, Variable.of(), Variable.of(), Variable.of()))
-				.build();
-
-		// Returns all the links between two Satellites (or GS)
-		var sat3 = Variable.of("sat3");
-		var sat4 = Variable.of("sat4");
-		var commSubSys3 = Variable.of("commSubSys3");
-		var commSubSys4 = Variable.of("commSubSys4");
-		satLink = Query.builder("satLink")
-				.parameters(sat3, sat4)
-				.clause(commSubSystemView.call(sat3, commSubSys3), commSubSystemView.call(sat4, commSubSys4),
-						commLinkView.call(commSubSys3, commSubSys4))
-				.build();
-
-		// Gets all the Satellites that have a loop
-		var sat5 = Variable.of("sat5");
-		commLoop = Query.builder("commLoop")
-				.parameters(sat5)
-				.clause(satLink.callTransitive(sat5, sat5))
-				.build();
-
-		// Gets a list of all the Satellites communicating to a given satellite
-		// *** the second clause needs to be reviewed
-		var sat6 = Variable.of("sat6");
-		var sat7 = Variable.of("sat7");
-		tTransmitHelper1 = Query.builder("tTransmitHelper1")
-				.parameters(sat6, sat7)
-				.clause(satLink.callTransitive(sat7, sat6), hasPayloadView.call(sat7))
-				.clause(sat7.isEquivalent(sat6), hasPayloadView.call(sat6))
-				.build();
-
-		// Output the number of satellite data you have to output
-		var sat8 = Variable.of("sat8");
-		var numSatDataToOutput = Variable.of("numSatDataToOutput", Integer.class);
-		tTransmitHelper2 = Query.builder("tTransmitHelper2")
-				.parameters(sat8)
-				.output(numSatDataToOutput)
-				.clause(numSatDataToOutput.assign(tTransmitHelper1.count(sat8, Variable.of())))
-				.build();
-
 		// Returns the speed between two satellites (or GS) depending on their comm types
 		var sat9 = Variable.of("sat9");
 		var commSubSys7 = Variable.of("commSubSys7");
@@ -351,6 +249,25 @@ public class CubeSatStore {
 				.clause(commSubSystemView.call(sat9, commSubSys7), uhfCommView.call(commSubSys7),
 						satLink.call(sat9, sat10), spacecraftView.call(sat10),
 						outputSpeed.assign(constant(5.0)))
+				.build();
+
+		// Gets a list of all the Satellites communicating to a given satellite
+		// *** the second clause needs to be reviewed
+		var sat6 = Variable.of("sat6");
+		var sat7 = Variable.of("sat7");
+		tTransmitHelper1 = Query.builder("tTransmitHelper1")
+				.parameters(sat6, sat7)
+				.clause(satLink.callTransitive(sat7, sat6), hasPayloadView.call(sat7))
+				.clause(sat7.isEquivalent(sat6), hasPayloadView.call(sat6))
+				.build();
+
+		// Output the number of satellite data you have to output
+		var sat8 = Variable.of("sat8");
+		var numSatDataToOutput = Variable.of("numSatDataToOutput", Integer.class);
+		tTransmitHelper2 = Query.builder("tTransmitHelper2")
+				.parameters(sat8)
+				.output(numSatDataToOutput)
+				.clause(numSatDataToOutput.assign(tTransmitHelper1.count(sat8, Variable.of())))
 				.build();
 
 		var sat11 = Variable.of("sat11");
@@ -445,6 +362,90 @@ public class CubeSatStore {
 						totalCost.assign(add(satCostAggregate, mul(constant(100000.0), tempTObservation3))))
 				.build();
 
+
+		// Misconfigured Queries
+
+		// Returns all Satellites/GS with more than two communication sub systems
+		var sat2 = Variable.of("sat2");
+		var commCount = Variable.of("commCount", Integer.class);
+		misconfiguredCommCount = Query.builder("misconfiguredCommCount")
+				.parameters(sat2)
+				.clause(communicatingElement.call(sat2),
+						commCount.assign(commSubSystemView.count(sat2, Variable.of())),
+						assume(greater(commCount, constant(2))))
+				.build();
+
+		// Need Query for misconfigured comm sub system in relation to a satellite
+		var sat18 = Variable.of("sat18");
+		var commSubSys0 = Variable.of("commSubSys0");
+		misconfiguredSatComm = Query.builder("misconfiguredSatComm")
+				.parameters(sat18, commSubSys0)
+				.clause(groundStationView.call(sat18), uhfCommView.call(commSubSys0),
+						commSubSystemView.call(sat18, commSubSys0))
+				.clause(spacecraftView.call(sat18), kaCommView.call(commSubSys0),
+						commSubSystemView.call(sat18, commSubSys0), not(smallSatView.call(sat18)))
+				.build();
+
+		// Helper for misconfigured communication links
+		var commSubSys1 = Variable.of("commSubSys1");
+		var commSubSys2 = Variable.of("commSubSys2");
+		misconfiguredCommLink = Query.builder("misconfiguredCommLink")
+				.parameters(commSubSys1, commSubSys2)
+				.clause(commLinkView.call(commSubSys1, commSubSys2), kaCommView.call(commSubSys1),
+						not(kaCommView.call(commSubSys2)))
+				.clause(commLinkView.call(commSubSys1, commSubSys2), uhfCommView.call(commSubSys1),
+						not(uhfCommView.call(commSubSys2)))
+				.clause(commLinkView.call(commSubSys1, commSubSys2), xCommView.call(commSubSys1),
+						not(xCommView.call(commSubSys2)))
+				.build();
+
+		// Finds all cases of a Satellite belonging to more than one type
+		var sat0 = Variable.of("Sat0");
+		misconfiguredSpacecraftHelper = Query.builder("misconfiguredSpacecraftHelper")
+				.parameters(sat0)
+				.clause(cube3UView.call(sat0), cube6UView.call(sat0))
+				.clause(cube6UView.call(sat0), smallSatView.call(sat0))
+				.clause(smallSatView.call(sat0), cube3UView.call(sat0))
+				.build();
+
+		// Ensure that a spacecraft only appears as one satellite
+		var sat1 = Variable.of("sat1");
+		misconfiguredSpacecraft = Query.builder("misconfiguredSpacecraft")
+				.parameters(sat1)
+				.clause(spacecraftView.call(sat1), misconfiguredSpacecraftHelper.call(sat1))
+				.clause(spacecraftView.call(sat1), not(cube3UView.call(sat0)), not(cube6UView.call(sat0)), not(smallSatView.call(sat0)))
+				.build();
+
+		// Returns comms that appear in more than one type of system
+		var commSubSys14 = Variable.of("commSubSys14");
+		misconfiguredComm = Query.builder("misconfiguredComm")
+				.parameters(commSubSys14)
+				.clause(uhfCommView.call(commSubSys14), xCommView.call(commSubSys14))
+				.clause(xCommView.call(commSubSys14), kaCommView.call(commSubSys14))
+				.clause(kaCommView.call(commSubSys14), uhfCommView.call(commSubSys14))
+				.build();
+
+		// Sats Must only appear once in payload
+		var tempPayloadCount = Variable.of("tempPayloadCount", Integer.class);
+		misconfiguredPayloadCount = Query.builder("misconfiguredPayloadCount")
+				.parameters()
+				.clause(tempPayloadCount.assign(hasPayloadView.count(Variable.of())),
+						assume(less(tempPayloadCount, constant(2))))
+				.build();
+
+		// Returns all satellites with more than one outgoing connection or a GS with any outgoing link
+		var sat19 = Variable.of("sat19");
+		var tempOutgoingCount = Variable.of("tempOutgoingCount", Integer.class);
+		misconfiguredSatCommLink = Query.builder("misconfiguredSatCommLink")
+				.parameters(sat19)
+				.clause(spacecraftView.call(sat19),
+						tempOutgoingCount.assign(satLinkHelper.count(sat19, Variable.of(), Variable.of(),
+								Variable.of())),
+						assume(notEq(tempOutgoingCount, constant(1))))
+				.clause(groundStationView.call(sat19),
+						satLinkHelper.call(sat19, Variable.of(), Variable.of(), Variable.of()))
+				.build();
+
 		// Checks all satellites with path to ground
 		var gs1 = Variable.of("gs1");
 		var sat16 = Variable.of("sat16");
@@ -461,8 +462,32 @@ public class CubeSatStore {
 				.clause(spacecraftView.call(sat17), not(groundPathHelper.call(sat17)))
 				.build();
 
+		// Returns all the comms not attached to a satelite
+		var commSubSys9 = Variable.of("commSubSys9");
+		unusedComm = Query.builder("unusedComm")
+				.parameters(commSubSys9)
+				.clause(allComms.call(commSubSys9), not(commSubSystemView.call(Variable.of(), commSubSys9)))
+				.build();
+
+		// Returns a commsub system that is not being used
+		var commSubSys11 = Variable.of("commSubSys11");
+		deadComm = Query.builder("deadComm")
+				.parameters(commSubSys11)
+				.clause(allComms.call(commSubSys11),
+						not(commLinkView.call(commSubSys11, Variable.of())),
+						not(commLinkView.call(Variable.of(), commSubSys11)))
+				.build();
+
+		// Gets all the Satellites that have a loop
+		var sat5 = Variable.of("sat5");
+		commLoop = Query.builder("commLoop")
+				.parameters(sat5)
+				.clause(satLink.callTransitive(sat5, sat5))
+				.build();
+
 
 		// Transformation Rule Precondition Queries
+
 		hasSpaceForComm = Query.of("hasSpaceForComm", (builder, tempSpacecraft) ->
 				builder.clause(Integer.class, (tempCount) -> List.of(
 						spacecraftView.call(tempSpacecraft),
@@ -544,7 +569,7 @@ public class CubeSatStore {
 								not(commLinkView.call(inputCommSubSystem, Variable.of()))
 						));
 
-		// Lists all comms whos satelites have no preexisitng outgoing satlink
+		// Lists all comms who's satellites have no preexisting outgoing satlink
 		hasNoOutCommLink = Query.of("hasNoOutCommLink",
 				(builder, inputSourceComm) ->
 						builder.clause((tempSpacecraft) -> List.of(
@@ -621,11 +646,22 @@ public class CubeSatStore {
 		store = ModelStore.builder()
 				.symbols(spacecraft, hasPayload, groundStation, cube3U, cube6U, smallSat, kaComm, xComm, uhfComm,
 						commSubSystem, commLink, tObservation, nextID)
-				.with(ViatraModelQueryAdapter.builder().queries(misconfiguredSpacecraft, misconfiguredCommCount,
-						misconfiguredSatComm, misconfiguredCommLink, misconfiguredComm, misconfiguredSatCommLink,
-						misconfiguredGroundPath, unusedComm, deadComm, commLoop,
-						allComms, communicatingElement, satLink,
-						coverage, tMission, satCost, missionCost))
+				.with(ViatraModelQueryAdapter.builder().queries(
+						communicatingElement, allComms, satLinkHelper, satLink,
+						coverage, dataCollected, linkSpeed, tTransmit, tMission, satCost, missionCost,
+						misconfiguredCommCount, misconfiguredSatComm, misconfiguredCommLink,
+						misconfiguredSpacecraftHelper, misconfiguredSpacecraft, misconfiguredComm,
+						misconfiguredPayloadCount, misconfiguredSatCommLink, groundPathHelper, misconfiguredGroundPath,
+						unusedComm, deadComm, commLoop, hasSpaceForComm,
+						hasXComm, addXCommLinkPrecondition, removeXCommFromSpacecraftPrecondition,
+						hasUhfComm, addUhfCommLinkPrecondition, removeUhfCommFromSpacecraftPrecondition,
+						hasKaComm, addKaCommLinkPrecondition, removeKaCommFromSpacecraftPrecondition,
+						hasNoOutCommLink,
+						addXCommLinkPrecondition, addUhfCommLinkPrecondition, addKaCommLinkPrecondition,
+						removeCommLinkPrecondition,
+						addPayloadToSpacecraftPrecondition, removePayloadFromSpacecraftPrecondition,
+						removeSmallSatSpacecraftPrecondition, removeCube3USpacecraftPrecondition,
+						removeCube6USpacecraftPrecondition))
 				.build();
 	}
 
@@ -641,6 +677,7 @@ public class CubeSatStore {
 		return groundStation;
 	}
 
+
 	public Symbol<Boolean> getCube3U() {
 		return cube3U;
 	}
@@ -652,6 +689,7 @@ public class CubeSatStore {
 	public Symbol<Boolean> getSmallSat() {
 		return smallSat;
 	}
+
 
 	public Symbol<Boolean> getKaComm() {
 		return kaComm;
@@ -665,6 +703,7 @@ public class CubeSatStore {
 		return uhfComm;
 	}
 
+
 	public Symbol<Boolean> getCommSubSystem() {
 		return commSubSystem;
 	}
@@ -672,6 +711,7 @@ public class CubeSatStore {
 	public Symbol<Boolean> getCommLink() {
 		return commLink;
 	}
+
 
 	public Symbol<Double> getTObservation() {
 		return tObservation;
@@ -682,56 +722,12 @@ public class CubeSatStore {
 	}
 
 
-	public RelationalQuery getMisconfiguredSpacecraft() {
-		return misconfiguredSpacecraft;
-	}
-
-	public RelationalQuery getMisconfiguredCommCount() {
-		return misconfiguredCommCount;
-	}
-
-	public RelationalQuery getMisconfiguredSatComm() {
-		return misconfiguredSatComm;
-	}
-
-	public RelationalQuery getMisconfiguredCommLink() {
-		return misconfiguredCommLink;
-	}
-
-	public RelationalQuery getMisconfiguredComm() {
-		return misconfiguredComm;
-	}
-
-	public RelationalQuery getMisconfiguredSatCommLink() {
-		return misconfiguredSatCommLink;
-	}
-
-	public RelationalQuery getMisconfiguredGroundPath() {
-		return misconfiguredGroundPath;
-	}
-
-	public RelationalQuery getMisconfiguredPayloadCount() {
-		return misconfiguredPayloadCount;
-	}
-
-	public RelationalQuery getUnusedComm() {
-		return unusedComm;
-	}
-
-	public RelationalQuery getDeadComm() {
-		return deadComm;
-	}
-
-	public RelationalQuery getCommLoop() {
-		return commLoop;
+	public RelationalQuery getCommunicatingElement() {
+		return communicatingElement;
 	}
 
 	public RelationalQuery getAllComms() {
 		return allComms;
-	}
-
-	public RelationalQuery getCommunicatingElement() {
-		return communicatingElement;
 	}
 
 	public RelationalQuery getSatLink() {
@@ -741,6 +737,18 @@ public class CubeSatStore {
 
 	public FunctionalQuery<Double> getCoverage() {
 		return coverage;
+	}
+
+	public FunctionalQuery<Double> getDataCollected() {
+		return dataCollected;
+	}
+
+	public FunctionalQuery<Double> getLinkSpeed() {
+		return linkSpeed;
+	}
+
+	public FunctionalQuery<Double> getTTransmit() {
+		return tTransmit;
 	}
 
 	public FunctionalQuery<Double> getTMission() {
@@ -755,6 +763,131 @@ public class CubeSatStore {
 		return missionCost;
 	}
 
+
+	public RelationalQuery getMisconfiguredCommCount() {
+		return misconfiguredCommCount;
+	}
+
+	public RelationalQuery getMisconfiguredSatComm() {
+		return misconfiguredSatComm;
+	}
+
+	public RelationalQuery getMisconfiguredCommLink() {
+		return misconfiguredCommLink;
+	}
+
+	public RelationalQuery getMisconfiguredSpacecraft() {
+		return misconfiguredSpacecraft;
+	}
+
+	public RelationalQuery getMisconfiguredComm() {
+		return misconfiguredComm;
+	}
+
+	public RelationalQuery getMisconfiguredPayloadCount() {
+		return misconfiguredPayloadCount;
+	}
+
+	public RelationalQuery getMisconfiguredSatCommLink() {
+		return misconfiguredSatCommLink;
+	}
+
+	public RelationalQuery getMisconfiguredGroundPath() {
+		return misconfiguredGroundPath;
+	}
+
+	public RelationalQuery getUnusedComm() {
+		return unusedComm;
+	}
+
+	public RelationalQuery getDeadComm() {
+		return deadComm;
+	}
+
+	public RelationalQuery getCommLoop() {
+		return commLoop;
+	}
+
+
+	public RelationalQuery getHasSpaceForComm() {
+		return hasSpaceForComm;
+	}
+
+	public RelationalQuery getHasXComm() {
+		return hasXComm;
+	}
+
+	public RelationalQuery getAddXCommToSpacecraftPrecondition() {
+		return addXCommToSpacecraftPrecondition;
+	}
+
+	public RelationalQuery getRemoveXCommFromSpacecraftPrecondition() {
+		return removeXCommFromSpacecraftPrecondition;
+	}
+
+	public RelationalQuery getHasUhfComm() {
+		return hasUhfComm;
+	}
+
+	public RelationalQuery getAddUhfCommToSpacecraftPrecondition() {
+		return addUhfCommToSpacecraftPrecondition;
+	}
+
+	public RelationalQuery getRemoveUhfCommFromSpacecraftPrecondition() {
+		return removeUhfCommFromSpacecraftPrecondition;
+	}
+
+	public RelationalQuery getHasKaComm() {
+		return hasKaComm;
+	}
+
+	public RelationalQuery getAddKaCommToSpacecraftPrecondition() {
+		return addKaCommToSpacecraftPrecondition;
+	}
+
+	public RelationalQuery getRemoveKaCommFromSpacecraftPrecondition() {
+		return removeKaCommFromSpacecraftPrecondition;
+	}
+
+	public RelationalQuery getHasNoOutCommLink() {
+		return hasNoOutCommLink;
+	}
+
+	public RelationalQuery getAddXCommLinkPrecondition() {
+		return addXCommLinkPrecondition;
+	}
+
+	public RelationalQuery getAddUhfCommLinkPrecondition() {
+		return addUhfCommLinkPrecondition;
+	}
+
+	public RelationalQuery getAddKaCommLinkPrecondition() {
+		return addKaCommLinkPrecondition;
+	}
+
+	public RelationalQuery getRemoveCommLinkPrecondition() {
+		return removeCommLinkPrecondition;
+	}
+
+	public RelationalQuery getAddPayloadToSpacecraftPrecondition() {
+		return addPayloadToSpacecraftPrecondition;
+	}
+
+	public RelationalQuery getRemovePayloadFromSpacecraftPrecondition() {
+		return removePayloadFromSpacecraftPrecondition;
+	}
+
+	public RelationalQuery getRemoveSmallSatSpacecraftPrecondition() {
+		return removeSmallSatSpacecraftPrecondition;
+	}
+
+	public RelationalQuery getRemoveCube3USpacecraftPrecondition() {
+		return removeCube3USpacecraftPrecondition;
+	}
+
+	public RelationalQuery getRemoveCube6USpacecraftPrecondition() {
+		return removeCube6USpacecraftPrecondition;
+	}
 
 	public CubeSatModel createEmptyModel() {
 		return new CubeSatModel(this, store.createEmptyModel());
