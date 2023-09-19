@@ -46,6 +46,8 @@ public class CubeSat {
 		var satCostResultSet = model.getSatCostResultSet();
 		var missionCostResult = model.getMissionCostResult();
 
+		double tObservation = 1.0;
+
 		int groundStation = 0;
 		int groundStationKaComm = 1;
 		int groundStationXComm = 2;
@@ -56,7 +58,27 @@ public class CubeSat {
 		xCommInterpretation.put(Tuple.of(groundStationXComm), true);
 		commSubSystemInterpretation.put(Tuple.of(groundStation, groundStationKaComm), true);
 		commSubSystemInterpretation.put(Tuple.of(groundStation, groundStationXComm), true);
-		tObservationInterpretation.put(Tuple.of(), 1.0); // Observation Time is 1 hour to begin with
+		tObservationInterpretation.put(Tuple.of(), tObservation); // Observation Time is 1 hour to begin with
+
+		model.updateResultSets();
+
+		long initalStateCommitID = model.commit();
+
+		System.out.println("Mission Cost for Initial Model");
+		System.out.println(missionCostResult.get(Tuple.of()));
+		System.out.println("Coverage for Initial Model");
+		System.out.println(coverageResult.get(Tuple.of()));
+		System.out.println("Mission Duration for Initial Model");
+		System.out.println(tMissionResult.get(Tuple.of()));
+
+		double lowestMissionCost = Double.POSITIVE_INFINITY;
+		double highestCoverage = Double.NEGATIVE_INFINITY;
+		double lowestMissionDuration = Double.POSITIVE_INFINITY;
+		long bestMissionModelCommitID = initalStateCommitID;
+		for (int i = 0; i < 10000; i++){
+			System.out.println("test");
+		}
+
 
 
 

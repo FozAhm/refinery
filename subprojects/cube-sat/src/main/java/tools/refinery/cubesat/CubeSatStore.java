@@ -7,6 +7,7 @@ import tools.refinery.store.query.term.Variable;
 import tools.refinery.store.query.term.int_.IntTerms;
 import tools.refinery.store.query.term.real.RealTerms;
 import tools.refinery.store.query.viatra.ViatraModelQueryAdapter;
+import tools.refinery.store.query.view.FunctionView;
 import tools.refinery.store.query.view.KeyOnlyView;
 import tools.refinery.store.representation.Symbol;
 
@@ -153,7 +154,7 @@ public class CubeSatStore {
 		var commSubSystemView = new KeyOnlyView<>(commSubSystem);
 		var commLinkView = new KeyOnlyView<>(commLink);
 
-		var tObservationView = new KeyOnlyView<>(tObservation);
+		var tObservationView = new FunctionView<>(tObservation);
 
 		// Queries
 
@@ -267,7 +268,7 @@ public class CubeSatStore {
 		tTransmitHelper2 = Query.builder("tTransmitHelper2")
 				.parameters(sat8)
 				.output(numSatDataToOutput)
-				.clause(numSatDataToOutput.assign(tTransmitHelper1.count(sat8, Variable.of())))
+				.clause(spacecraftView.call(sat8),numSatDataToOutput.assign(tTransmitHelper1.count(sat8, Variable.of())))
 				.build();
 
 		var sat11 = Variable.of("sat11");
@@ -413,7 +414,7 @@ public class CubeSatStore {
 		misconfiguredSpacecraft = Query.builder("misconfiguredSpacecraft")
 				.parameters(sat1)
 				.clause(spacecraftView.call(sat1), misconfiguredSpacecraftHelper.call(sat1))
-				.clause(spacecraftView.call(sat1), not(cube3UView.call(sat0)), not(cube6UView.call(sat0)), not(smallSatView.call(sat0)))
+				.clause(spacecraftView.call(sat1), not(cube3UView.call(sat1)), not(cube6UView.call(sat1)), not(smallSatView.call(sat1)))
 				.build();
 
 		// Returns comms that appear in more than one type of system
@@ -623,7 +624,7 @@ public class CubeSatStore {
 						builder.clause(
 								spacecraftView.call(tempSpacecraft),
 								smallSatView.call(tempSpacecraft),
-								not(commSubSystemView.call(tempCommCost, Variable.of()))
+								not(commSubSystemView.call(tempSpacecraft, Variable.of()))
 						));
 
 		removeCube3USpacecraftPrecondition = Query.of("removeCube3USpacecraftPrecondition",
@@ -631,7 +632,7 @@ public class CubeSatStore {
 						builder.clause(
 								spacecraftView.call(tempSpacecraft),
 								cube3UView.call(tempSpacecraft),
-								not(commSubSystemView.call(tempCommCost, Variable.of()))
+								not(commSubSystemView.call(tempSpacecraft, Variable.of()))
 						));
 
 		removeCube6USpacecraftPrecondition = Query.of("removeCube6USpacecraftPrecondition",
@@ -639,7 +640,7 @@ public class CubeSatStore {
 						builder.clause(
 								spacecraftView.call(tempSpacecraft),
 								cube6UView.call(tempSpacecraft),
-								not(commSubSystemView.call(tempCommCost, Variable.of()))
+								not(commSubSystemView.call(tempSpacecraft, Variable.of()))
 						));
 
 
