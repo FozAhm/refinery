@@ -1,9 +1,10 @@
 package tools.refinery.cubesat;
 
+import tools.refinery.store.map.Version;
 import tools.refinery.store.model.Model;
 import tools.refinery.store.query.ModelQueryAdapter;
 import tools.refinery.store.model.Interpretation;
-import tools.refinery.store.query.ResultSet;
+import tools.refinery.store.query.resultset.ResultSet;
 import tools.refinery.store.tuple.Tuple;
 
 public class CubeSatModel {
@@ -95,13 +96,13 @@ public class CubeSatModel {
 	}
 
 	// Standard Access Functions
-	public long commit(){
+	public Version commit(){
 		return this.model.commit();
 	}
 	public void updateResultSets(){
 		this.queryEngine.flushChanges();
 	}
-	public void restoreModel(long commitID) {
+	public void restoreModel(Version commitID) {
 		this.model.restore(commitID);
 	}
 	private int newID(){

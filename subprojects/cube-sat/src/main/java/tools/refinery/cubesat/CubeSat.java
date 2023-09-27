@@ -1,5 +1,6 @@
 package tools.refinery.cubesat;
 
+import tools.refinery.store.map.Version;
 import tools.refinery.store.tuple.Tuple;
 
 public class CubeSat {
@@ -62,7 +63,7 @@ public class CubeSat {
 
 		model.updateResultSets();
 
-		long initalStateCommitID = model.commit();
+		Version initalStateCommitID = model.commit();
 
 		System.out.println("Mission Cost for Initial Model");
 		System.out.println(missionCostResult.get(Tuple.of()));
@@ -74,10 +75,10 @@ public class CubeSat {
 		double lowestMissionCost = Double.POSITIVE_INFINITY;
 		double highestCoverage = Double.NEGATIVE_INFINITY;
 		double lowestMissionDuration = Double.POSITIVE_INFINITY;
-		long bestMissionModelCommitID = initalStateCommitID;
-		for (int i = 0; i < 10000; i++){
-			System.out.println("test");
-		}
+		Version bestMissionModelCommitID = initalStateCommitID;
+//		for (int i = 0; i < 10000; i++){
+//			continue;
+//		}
 
 
 
