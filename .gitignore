@@ -28,3 +28,4 @@ xtend-gen/
 *.xtendbin
 xtext-gen/
 .DS_Store
+*.dot
