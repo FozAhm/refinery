@@ -3,5 +3,8 @@ plugins {
 }
 
 dependencies {
-	api project(':refinery-store-query-viatra')
+	api project(':refinery-store-query-interpreter')
+	api project(':refinery-store-dse')
+	api project(':refinery-store-dse-visualization')
+	api "com.googlecode.json-simple:json-simple:1.1.1"
 }
