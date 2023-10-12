@@ -30,7 +30,8 @@ public class QueryObjective implements Objective {
 			if (!cursor.move()) {
 				return 0;
 			}
-			return Math.max(cursor.getValue().doubleValue(), 0);
+			//return Math.max(cursor.getValue().doubleValue(), 0);
+			return cursor.getValue().doubleValue();
 		};
 	}
 

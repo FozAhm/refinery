@@ -31,7 +31,7 @@ public class Example1 {
 		Problem problem = new DTLZ2(2);
 
 		NSGAII algorithm = new NSGAII(problem);
-		algorithm.run(10000);
+		algorithm.run(1000);
 
 		algorithm.getResult().display();
 	}
