@@ -1,4 +1,5 @@
-import tools.refinery.store.query.ResultSet;
+import tools.refinery.store.map.Version;
+import tools.refinery.store.query.resultset.ResultSet;
 import tools.refinery.store.tuple.Tuple;
 
 import java.util.ArrayList;
@@ -70,7 +71,7 @@ public class CRA {
 
 		model.updateResultSets();
 
-		long initalStateCommitID = model.commit();
+		Version initalStateCommitID = model.commit();
 
 		System.out.println("CRA Index for Initial Model");
 		System.out.println(CRAResult.get(Tuple.of()));
@@ -97,7 +98,7 @@ public class CRA {
 //		}
 
 		double highestCRA = Double.NEGATIVE_INFINITY;
-		long highestCRACommitID = initalStateCommitID;
+		Version highestCRACommitID = initalStateCommitID;
 		for (int i = 0; i < 10000; i++){
 			ArrayList<RuleActivation> moves = new ArrayList<RuleActivation>();
 

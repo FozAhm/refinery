@@ -3,5 +3,6 @@ plugins {
 }
 
 dependencies {
-	api project(':refinery-store-query-viatra')
+	api project(':refinery-store-query-interpreter')
+	api "org.moeaframework:moeaframework:3.7"
 }

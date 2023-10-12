@@ -3,5 +3,5 @@ plugins {
 }
 
 dependencies {
-	api project(':refinery-store-query-viatra')
+	api project(':refinery-store-query-interpreter')
 }

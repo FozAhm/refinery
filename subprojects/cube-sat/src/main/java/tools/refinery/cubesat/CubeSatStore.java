@@ -6,14 +6,14 @@ import tools.refinery.store.query.literal.Literals;
 import tools.refinery.store.query.term.Variable;
 import tools.refinery.store.query.term.int_.IntTerms;
 import tools.refinery.store.query.term.real.RealTerms;
-import tools.refinery.store.query.viatra.ViatraModelQueryAdapter;
+import tools.refinery.store.query.interpreter.QueryInterpreterAdapter;
 import tools.refinery.store.query.view.FunctionView;
 import tools.refinery.store.query.view.KeyOnlyView;
 import tools.refinery.store.representation.Symbol;
 
 import java.util.List;
 
-import static tools.refinery.store.query.literal.Literals.assume;
+import static tools.refinery.store.query.literal.Literals.check;
 import static tools.refinery.store.query.literal.Literals.not;
 import static tools.refinery.store.query.term.int_.IntTerms.*;
 import static tools.refinery.store.query.term.int_.IntTerms.constant;
@@ -313,9 +313,9 @@ public class CubeSatStore {
 				.parameters(sat13)
 				.output(commCost)
 				.clause(spacecraftView.call(sat13), commCount2.assign(commSubSystemView.count(sat13, Variable.of())),
-						assume(eq(commCount2, constant(2))), commCost.assign(constant(100000.0)))
+						check(eq(commCount2, constant(2))), commCost.assign(constant(100000.0)))
 				.clause(spacecraftView.call(sat13), commCount2.assign(commSubSystemView.count(sat13, Variable.of())),
-						assume(less(commCount2, constant(2))), commCost.assign(constant(0.0)))
+						check(less(commCount2, constant(2))), commCost.assign(constant(0.0)))
 				.build();
 
 		var sat14 = Variable.of("sat14");
@@ -373,7 +373,7 @@ public class CubeSatStore {
 				.parameters(sat2)
 				.clause(communicatingElement.call(sat2),
 						commCount.assign(commSubSystemView.count(sat2, Variable.of())),
-						assume(greater(commCount, constant(2))))
+						check(greater(commCount, constant(2))))
 				.build();
 
 		// Need Query for misconfigured comm sub system in relation to a satellite
@@ -431,7 +431,7 @@ public class CubeSatStore {
 		misconfiguredPayloadCount = Query.builder("misconfiguredPayloadCount")
 				.parameters()
 				.clause(tempPayloadCount.assign(hasPayloadView.count(Variable.of())),
-						assume(less(tempPayloadCount, constant(2))))
+						check(less(tempPayloadCount, constant(2))))
 				.build();
 
 		// Returns all satellites with more than one outgoing connection or a GS with any outgoing link
@@ -442,7 +442,7 @@ public class CubeSatStore {
 				.clause(spacecraftView.call(sat19),
 						tempOutgoingCount.assign(satLinkHelper.count(sat19, Variable.of(), Variable.of(),
 								Variable.of())),
-						assume(notEq(tempOutgoingCount, constant(1))))
+						check(notEq(tempOutgoingCount, constant(1))))
 				.clause(groundStationView.call(sat19),
 						satLinkHelper.call(sat19, Variable.of(), Variable.of(), Variable.of()))
 				.build();
@@ -493,7 +493,7 @@ public class CubeSatStore {
 				builder.clause(Integer.class, (tempCount) -> List.of(
 						spacecraftView.call(tempSpacecraft),
 						tempCount.assign(commSubSystemView.count(tempSpacecraft, Variable.of())),
-						assume(less(tempCount, constant(2)))
+						check(less(tempCount, constant(2)))
 				)));
 
 		hasXComm = Query.of("hasXComm", (builder, tempSpacecraft) ->
@@ -647,7 +647,7 @@ public class CubeSatStore {
 		store = ModelStore.builder()
 				.symbols(spacecraft, hasPayload, groundStation, cube3U, cube6U, smallSat, kaComm, xComm, uhfComm,
 						commSubSystem, commLink, tObservation, nextID)
-				.with(ViatraModelQueryAdapter.builder().queries(
+				.with(QueryInterpreterAdapter.builder().queries(
 						communicatingElement, allComms, satLinkHelper, satLink,
 						coverage, dataCollected, linkSpeed, tTransmit, tMission, satCost, missionCost,
 						misconfiguredCommCount, misconfiguredSatComm, misconfiguredCommLink,
