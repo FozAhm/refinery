@@ -1,0 +1,8 @@
+plugins {
+	id 'tools.refinery.gradle.java-library'
+}
+
+dependencies {
+	api project(':refinery-store-query-interpreter')
+	api project(':refinery-store-dse')
+}

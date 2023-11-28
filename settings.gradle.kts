@@ -30,6 +30,7 @@ include(
 		"dse-demo",
 		"cube-sat",
 		"dse-sprint",
+		"dse-test"
 )
 
 for (project in rootProject.children) {
