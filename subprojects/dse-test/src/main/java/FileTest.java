@@ -168,7 +168,8 @@ public class FileTest {
 						.objectives(Objectives.value(fileSystemScore))
 						.accept(Criteria.whenNoMatch(nonEncapsulatedFiles))
 						.accept(Criteria.whenNoMatch(objectsWithTooManyParents))
-						.accept(Criteria.whenNoMatch(tooManyRootFolders)))
+						.accept(Criteria.whenNoMatch(tooManyRootFolders))
+						.accept(Criteria.whenNoMatch(objectsWithLoops)))
 				.build();
 
 		var model = store.createEmptyModel();
